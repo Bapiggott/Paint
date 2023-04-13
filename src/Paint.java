@@ -1,16 +1,24 @@
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import javax.imageio.ImageIO;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 public class Paint extends Application {
@@ -43,11 +51,10 @@ public class Paint extends Application {
         ComboBox<String> sizeComboBox = new ComboBox<>(FXCollections.observableArrayList("Size","Small", "Medium", "Large"));
         ComboBox<String> shapeComboBox = new ComboBox<>(FXCollections.observableArrayList("Draw","Square", "Circle", "Triangle", "Star"));
         ComboBox<String> designComboBox = new ComboBox<>(FXCollections.observableArrayList("Design","Regular","Grid", "Speckled"));
-        // Add event handler for sizeComboBox
+
         sizeComboBox.setOnAction(event -> {
             String selectedSize = sizeComboBox.getValue();
             sizeComboBox.getItems().remove("Size");
-            // Update radius based on selectedSize
             if ("Small".equals(selectedSize)) {
                 brushRadius = 1 * change;
                 shapeLength = changedShepeLength;
@@ -65,15 +72,16 @@ public class Paint extends Application {
         });
 
         shapeComboBox.setOnAction(event -> {
+            designComboBox.getSelectionModel().selectFirst();
             slectedShape = shapeComboBox.getValue();
-            // Update radius based on selectedSize
+            designComboBox.getSelectionModel().select("Regular");
             
         });
 
         designComboBox.setOnAction(event -> {
             designComboBox.getItems().remove("Design");
             slectedDesign = designComboBox.getValue();
-            // Update radius based on selectedSize
+            //shapeComboBox.getSelectionModel().select("Regular");
             
         });
         colorComboBox.getSelectionModel().selectFirst();
@@ -98,20 +106,60 @@ public class Paint extends Application {
             }
             if ((eraserOnOrOff % 2) == 0 ){
                 currentColor = previousColor;
-                colorComboBox.getSelectionModel().selectPrevious();
+                colorComboBox.getSelectionModel().selectFirst();
                 shapeComboBox.getSelectionModel().select("Draw");
             }
             eraserOnOrOff++;
         });
 
+
+        Button saveButton = new Button("Save");
+        saveButton.setOnAction(event -> {
+            String folderName = "PaintSaves";
+            File folder = new File(folderName);
+        
+            if (!folder.exists()) {
+                folder.mkdir();
+            }
+            FileChooser fileChooser = new FileChooser();
+        
+            String currentDirectory = System.getProperty("user.dir");
+            File initialDirectory = new File(currentDirectory, folderName);
+            fileChooser.setInitialDirectory(initialDirectory);
+        
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Paint");
+            dialog.setHeaderText("Enter a name for the image");
+            dialog.setContentText("File Name:");
+            Optional<String> result = dialog.showAndWait();
+        
+            result.ifPresent(input -> {
+                String fileName = input + ".png";
+                File file = new File(initialDirectory, fileName);
+                if (file != null) {
+                    try {
+                        ImageIO.write(SwingFXUtils.fromFXImage(canvas.snapshot(null, null), null), "png", file);
+                        System.out.println("Image saved: " + file.getAbsolutePath());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            });
+        });
+        
+
         BorderPane root = new BorderPane(canvas);
-        HBox buttonBox = new HBox(5); 
-
-        buttonBox.setAlignment(Pos.CENTER);
-
-        buttonBox.getChildren().addAll(colorComboBox, sizeComboBox, shapeComboBox,designComboBox, eraserButton, clearButton);
-
-        root.setBottom(buttonBox);
+        HBox buttonBox1 = new HBox(7);
+        HBox buttonBox2 = new HBox(7);
+        
+        buttonBox1.setAlignment(Pos.CENTER);
+        buttonBox2.setAlignment(Pos.CENTER);
+        buttonBox1.getChildren().addAll(colorComboBox, sizeComboBox, shapeComboBox, designComboBox);
+        buttonBox2.getChildren().addAll(eraserButton, clearButton, saveButton);
+        VBox vbox = new VBox(10);
+        vbox.setAlignment(Pos.CENTER);
+        vbox.getChildren().addAll(buttonBox1, buttonBox2);
+        root.setBottom(vbox);
 
         Scene scene = new Scene(root, 500, 900);
         primaryStage.setScene(scene);
@@ -170,7 +218,7 @@ public class Paint extends Application {
     private void drawTriangle(GraphicsContext gc, int row, int column) {
         int x = column * PIXEL_SIZE;
         int y = row * PIXEL_SIZE;
-        double[] yPoints = {y, y , y- (shapeLength * Math.sqrt(3) * 0.8 )}; 
+        double[] yPoints = {y, y , y- (shapeLength * Math.sqrt(3) * 0.6 )}; 
         double[] xPoints = {x , x + shapeLength, x + (shapeLength / 2)};
         gc.setLineWidth(shapeWidth);
         gc.setStroke(currentColor);
